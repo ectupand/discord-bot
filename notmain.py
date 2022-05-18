@@ -1,12 +1,11 @@
 import asyncio
-import random
-
-import aiohttp
+import os
 import discord
 from dotenv import load_dotenv
 import os
 from discord.ext import commands
 import youtube_dl
+from selenium.webdriver.common.by import By
 
 load_dotenv()
 token = os.getenv('token')
@@ -80,19 +79,21 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return filename
 
 
+from selenium import webdriver
 @bot.command(name='play', help='To play song')
 async def play(ctx, song):
-    async with aiohttp.ClientSession() as session:
-        request = await session.get('https://www.youtube.com/results?search_query='+song)
-    #in work
-
-
+    driver = webdriver.Chrome(executable_path='C:/chromedriver.exe')
+    driver.get(f'https://www.youtube.com/results?search_query={song}')
+    link = driver.find_elements_by_xpath('//a[contains(@class, "thumbnail")]')[1]
+    url = link.get_attribute("href")
+    driver.close()
     server = ctx.message.guild
     voice_channel = server.voice_client
     async with ctx.typing():
-        filename = await YTDLSource.from_url(song, loop=bot.loop)
+        filename = await YTDLSource.from_url(url, loop=bot.loop)
         voice_channel.play(discord.FFmpegPCMAudio(executable="C:/FFmpeg/bin/ffmpeg.exe", source=filename))
     await ctx.send('**Now playing:** {}'.format(filename))
+    os.remove(filename)
 
 
 
